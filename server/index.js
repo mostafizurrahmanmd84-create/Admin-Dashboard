@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { v4: uuid } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 const app = express();
@@ -19,15 +19,15 @@ const state = {
 };
 
 function seed(){
-  const c1={id:uuid(),customerName:'Rahim',customerId:'demo-001',status:'AI_ACTIVE',lastActivity:new Date().toISOString(),messages:[
-    {id:uuid(),role:'user',content:'iPhone 15 er price koto?',time:new Date(Date.now()-600000).toISOString()},
-    {id:uuid(),role:'assistant',content:'আমি বর্তমান ব্যবসায়িক তথ্য যাচাই করে জানাচ্ছি।',time:new Date(Date.now()-590000).toISOString()}
+  const c1={id:uuidv4(),customerName:'Rahim',customerId:'demo-001',status:'AI_ACTIVE',lastActivity:new Date().toISOString(),messages:[
+    {id:uuidv4(),role:'user',content:'iPhone 15 er price koto?',time:new Date(Date.now()-600000).toISOString()},
+    {id:uuidv4(),role:'assistant',content:'আমি বর্তমান ব্যবসায়িক তথ্য যাচাই করে জানাচ্ছি।',time:new Date(Date.now()-590000).toISOString()}
   ]};
-  const c2={id:uuid(),customerName:'Karim',customerId:'demo-002',status:'HANDOFF_REQUIRED',lastActivity:new Date().toISOString(),messages:[
-    {id:uuid(),role:'user',content:'আমি একজন মানুষের সাথে কথা বলতে চাই।',time:new Date(Date.now()-300000).toISOString()}
+  const c2={id:uuidv4(),customerName:'Karim',customerId:'demo-002',status:'HANDOFF_REQUIRED',lastActivity:new Date().toISOString(),messages:[
+    {id:uuidv4(),role:'user',content:'আমি একজন মানুষের সাথে কথা বলতে চাই।',time:new Date(Date.now()-300000).toISOString()}
   ]};
   state.conversations.push(c1,c2);
-  state.unanswered.push({id:uuid(),conversationId:c1.id,customerName:'Rahim',question:'আপনাদের exchange policy কী?',status:'NEW',confidence:0.21,createdAt:new Date().toISOString()});
+  state.unanswered.push({id:uuidv4(),conversationId:c1.id,customerName:'Rahim',question:'আপনাদের exchange policy কী?',status:'NEW',confidence:0.21,createdAt:new Date().toISOString()});
 }
 seed();
 
@@ -45,7 +45,7 @@ function ingestAuth(req,res,next){
 }
 
 function emit(type,data){ const payload=`data: ${JSON.stringify({type,data})}\n\n`; for(const r of clients){try{r.write(payload)}catch{clients.delete(r)}} }
-function addEvent(type,data){state.events.unshift({id:uuid(),type,data,time:new Date().toISOString()}); state.events=state.events.slice(0,500); emit(type,data);}
+function addEvent(type,data){state.events.unshift({id:uuidv4(),type,data,time:new Date().toISOString()}); state.events=state.events.slice(0,500); emit(type,data);}
 
 app.get('/api/health',(req,res)=>res.json({...state.health, updatedAt:new Date().toISOString()}));
 app.get('/api/auth/check',(req,res)=>res.json({ok:true}));
@@ -58,13 +58,13 @@ app.get('/api/overview',(req,res)=>{
 app.get('/api/conversations',(req,res)=>res.json(state.conversations));
 app.get('/api/conversations/:id',(req,res)=>{const c=state.conversations.find(x=>x.id===req.params.id); if(!c)return res.status(404).json({error:'Not found'});res.json(c)});
 app.post('/api/conversations/:id/mode',(req,res)=>{const c=state.conversations.find(x=>x.id===req.params.id); if(!c)return res.status(404).json({error:'Not found'}); const mode=req.body.mode; if(!['AI_ACTIVE','HUMAN_ACTIVE','HANDOFF_REQUIRED','CLOSED'].includes(mode))return res.status(400).json({error:'Invalid mode'});c.status=mode;c.lastActivity=new Date().toISOString();addEvent('conversation_mode',{conversationId:c.id,mode});res.json(c)});
-app.post('/api/conversations/:id/reply',(req,res)=>{const c=state.conversations.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:'Not found'});if(c.status!=='HUMAN_ACTIVE')return res.status(409).json({error:'Conversation is not in HUMAN_ACTIVE mode'});const text=String(req.body.text||'').trim();if(!text)return res.status(400).json({error:'Message required'});c.messages.push({id:uuid(),role:'human',content:text,time:new Date().toISOString()});c.lastActivity=new Date().toISOString();addEvent('human_reply',{conversationId:c.id,text});res.json(c)});
+app.post('/api/conversations/:id/reply',(req,res)=>{const c=state.conversations.find(x=>x.id===req.params.id);if(!c)return res.status(404).json({error:'Not found'});if(c.status!=='HUMAN_ACTIVE')return res.status(409).json({error:'Conversation is not in HUMAN_ACTIVE mode'});const text=String(req.body.text||'').trim();if(!text)return res.status(400).json({error:'Message required'});c.messages.push({id:uuidv4(),role:'human',content:text,time:new Date().toISOString()});c.lastActivity=new Date().toISOString();addEvent('human_reply',{conversationId:c.id,text});res.json(c)});
 app.get('/api/unanswered',(req,res)=>res.json(state.unanswered));
 app.post('/api/unanswered/:id/status',(req,res)=>{const x=state.unanswered.find(x=>x.id===req.params.id);if(!x)return res.status(404).json({error:'Not found'});x.status=req.body.status;addEvent('unanswered_status',{id:x.id,status:x.status});res.json(x)});
 app.get('/api/feedback',(req,res)=>res.json(state.feedback));
-app.post('/api/feedback',(req,res)=>{const item={id:uuid(),...req.body,createdAt:new Date().toISOString()};state.feedback.unshift(item);addEvent('feedback',item);res.json(item)});
+app.post('/api/feedback',(req,res)=>{const item={id:uuidv4(),...req.body,createdAt:new Date().toISOString()};state.feedback.unshift(item);addEvent('feedback',item);res.json(item)});
 app.get('/api/leads',(req,res)=>res.json(state.leads));
-app.post('/api/leads',(req,res)=>{const item={id:uuid(),status:'NEW',createdAt:new Date().toISOString(),...req.body};state.leads.unshift(item);addEvent('lead',item);res.json(item)});
+app.post('/api/leads',(req,res)=>{const item={id:uuidv4(),status:'NEW',createdAt:new Date().toISOString(),...req.body};state.leads.unshift(item);addEvent('lead',item);res.json(item)});
 app.get('/api/settings',(req,res)=>res.json(state.settings));
 app.put('/api/settings',(req,res)=>{state.settings={...state.settings,...req.body};addEvent('settings_changed',state.settings);res.json(state.settings)});
 
@@ -72,11 +72,11 @@ app.put('/api/settings',(req,res)=>{state.settings={...state.settings,...req.bod
 app.post('/api/ingest',ingestAuth,(req,res)=>{
   const e=req.body||{}; if(!e.customerId||!e.type)return res.status(400).json({error:'customerId and type required'});
   let c=state.conversations.find(x=>x.customerId===e.customerId);
-  if(!c){c={id:uuid(),customerName:e.customerName||'Unknown customer',customerId:e.customerId,status:'AI_ACTIVE',lastActivity:new Date().toISOString(),messages:[]};state.conversations.unshift(c)}
+  if(!c){c={id:uuidv4(),customerName:e.customerName||'Unknown customer',customerId:e.customerId,status:'AI_ACTIVE',lastActivity:new Date().toISOString(),messages:[]};state.conversations.unshift(c)}
   const role=e.type==='human_reply'?'human':(e.role||'user');
-  if(e.content)c.messages.push({id:e.messageId||uuid(),role,content:e.content,time:e.time||new Date().toISOString(),type:e.eventType||e.type});
+  if(e.content)c.messages.push({id:e.messageId||uuidv4(),role,content:e.content,time:e.time||new Date().toISOString(),type:e.eventType||e.type});
   c.lastActivity=new Date().toISOString();
-  if(e.unanswered){state.unanswered.unshift({id:uuid(),conversationId:c.id,customerName:c.customerName,question:e.content||'',status:'NEW',confidence:e.confidence??0,createdAt:new Date().toISOString()})}
+  if(e.unanswered){state.unanswered.unshift({id:uuidv4(),conversationId:c.id,customerName:c.customerName,question:e.content||'',status:'NEW',confidence:e.confidence??0,createdAt:new Date().toISOString()})}
   if(e.handoff)c.status='HANDOFF_REQUIRED';
   addEvent('message', {conversationId:c.id,customerId:c.customerId}); res.json({ok:true,conversationId:c.id});
 });
