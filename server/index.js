@@ -7,7 +7,9 @@ require('dotenv').config();
 const app = express();
 app.use(cors());
 app.use(express.json({limit:'1mb'}));
-
+app.get('/', (req, res) => {
+  res.send('Server is running successfully!');
+});
 const PORT = process.env.PORT || 4000;
 const ADMIN_KEY = process.env.ADMIN_KEY || 'change-this-admin-key';
 const INGEST_KEY = process.env.INGEST_KEY || '';
